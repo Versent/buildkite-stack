@@ -1,0 +1,285 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "buildkite agent stack.",
+  "Parameters": {
+    "VpcId": {
+      "Description": "The ID of the VPC we're launching into",
+      "Type": "AWS::EC2::VPC::Id"
+    },
+    "EC2KeyName": {
+      "Default": "buildkite",
+      "Description": "Name of an existing EC2 KeyPair for SSH access",
+      "Type": "AWS::EC2::KeyPair::KeyName"
+    },
+    "InstanceType": {
+      "Description": "EC2 instance type used for Agent servers",
+      "Type": "String",
+      "Default": "t2.small"
+    },
+    "Subnets": {
+      "Description": "Subnet Id for Public Zone",
+      "Type": "List<AWS::EC2::Subnet::Id>"
+    },
+    "AMIID": {
+      "Description": "Buildkite AMI to use.",
+      "Type": "AWS::EC2::Image::Id"
+    },
+    "CofferKeyARN": {
+      "Description": "The ARN of the KMS key to use to decrypt secrets.",
+      "Type": "String"
+    },
+    "AgentToken": {
+      "Description": "Buildkite Agent Token.",
+      "Type": "String",
+      "NoEcho": true
+    },
+    "AgentMetaData": {
+      "Description": "Meta data to configure the agent with.",
+      "Type": "String"
+    },
+    "CofferS3BucketName": {
+      "Description": "S3 Bucket containing buildkite coffer files.",
+      "Type": "String"
+    },
+    "ClusterSize": {
+      "Default": "1",
+      "MinValue": "1",
+      "MaxValue": "2",
+      "Description": "Number of buildkite hosts to spawn.",
+      "Type": "Number"
+    },
+    "AllowSSHFrom": {
+      "Description": "The net block (CIDR) which is permitted to ssh to the buildkite agent servers.",
+      "Default": "0.0.0.0/0",
+      "Type": "String"
+    },
+    "SpotPrice": {
+      "Description": "Spot price for application AutoScaling Group",
+      "Type": "Number",
+      "MinValue": "0",
+      "Default": "0"
+    }
+  },
+  "Conditions": {
+    "UseSpotInstances": {
+      "Fn::Not": [
+        {
+          "Fn::Equals": [
+            0,
+            {
+              "Ref": "SpotPrice"
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "Resources": {
+    "SecurityGroupAgent": {
+      "Type": "AWS::EC2::SecurityGroup",
+      "Properties": {
+        "GroupDescription": "Agent External SecurityGroup",
+        "VpcId": {
+          "Ref": "VpcId"
+        },
+        "SecurityGroupIngress": [
+          {
+            "IpProtocol": "tcp",
+            "FromPort": "22",
+            "ToPort": "22",
+            "CidrIp": {
+              "Ref": "AllowSSHFrom"
+            }
+          }
+        ],
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "buildkite-agent"
+          },
+          {
+            "Key": "Application",
+            "Value": {
+              "Ref": "AWS::StackName"
+            }
+          }
+        ]
+      }
+    },
+    "RoleAgent": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": {
+                "Service": [
+                  "ec2.amazonaws.com"
+                ]
+              },
+              "Action": [
+                "sts:AssumeRole"
+              ]
+            }
+          ]
+        },
+        "Policies": [
+          {
+            "PolicyName": "buildkite-agent-policy",
+            "PolicyDocument": {
+              "Statement": [
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "s3:Get*",
+                    "s3:List*"
+                  ],
+                  "Resource": [
+                    {
+                      "Fn::Join": [
+                        "",
+                        [
+                          "arn:aws:s3:::",
+                          {
+                            "Ref": "CofferS3BucketName"
+                          },
+                          "/*"
+                        ]
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "kms:Encrypt",
+                    "kms:Decrypt",
+                    "kms:ReEncrypt*",
+                    "kms:GenerateDataKey*",
+                    "kms:DescribeKey"
+                  ],
+                  "Resource": {
+                    "Ref": "CofferKeyARN"
+                  }
+                },
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "logs:CreateLogGroup",
+                    "logs:CreateLogStream",
+                    "logs:PutLogEvents",
+                    "logs:DescribeLogStreams"
+                  ],
+                  "Resource": [
+                    "arn:aws:logs:*:*:*"
+                  ]
+                }
+              ]
+            }
+          }
+        ],
+        "Path": "/"
+      }
+    },
+    "InstanceProfileAgent": {
+      "Type": "AWS::IAM::InstanceProfile",
+      "Properties": {
+        "Path": "/",
+        "Roles": [
+          {
+            "Ref": "RoleAgent"
+          }
+        ]
+      }
+    },
+    "AutoScalingGroupAgent": {
+      "Type": "AWS::AutoScaling::AutoScalingGroup",
+      "Properties": {
+        "LaunchConfigurationName": {
+          "Ref": "LaunchConfigAgent"
+        },
+        "MinSize": "1",
+        "MaxSize": "3",
+        "DesiredCapacity": {
+          "Ref": "ClusterSize"
+        },
+        "VPCZoneIdentifier": {
+          "Ref": "Subnets"
+        },
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": {
+              "Ref": "AWS::StackName"
+            },
+            "PropagateAtLaunch": true
+          }
+        ]
+      }
+    },
+    "LaunchConfigAgent": {
+      "Type": "AWS::AutoScaling::LaunchConfiguration",
+      "Properties": {
+        "AssociatePublicIpAddress": "true",
+        "IamInstanceProfile": {
+          "Ref": "InstanceProfileAgent"
+        },
+        "InstanceType": {
+          "Ref": "InstanceType"
+        },
+        "KeyName": {
+          "Ref": "EC2KeyName"
+        },
+        "ImageId": {
+          "Ref": "AMIID"
+        },
+        "SpotPrice": {
+          "Fn::If": [
+            "UseSpotInstances",
+            {
+              "Ref": "SpotPrice"
+            },
+            {"Ref" : "AWS::NoValue"}
+          ]
+        },
+        "SecurityGroups": [
+          {
+            "Ref": "SecurityGroupAgent"
+          }
+        ],
+        "UserData": {
+          "Fn::Base64": {
+            "Fn::Join": [
+              "",
+              [
+                "#!/bin/bash\n",
+                "\n",
+                "sed -i \"s/xxx/",
+                {
+                  "Ref": "AgentToken"
+                },
+                "/g\" /etc/buildkite-agent/buildkite-agent.cfg\n",
+                "echo meta-data=\"", {"Ref": "AgentMetaData"} ,"\" >> /etc/buildkite-agent/buildkite-agent.cfg\n",
+                "\n",
+                "su - buildkite-agent -c \"AWS_REGION=",
+                {
+                  "Ref": "AWS::Region"
+                },
+                " coffer --coffer-file buildkite.coffer download-sync --bucket=versent-buildkite-coffers\"\n",
+                "service buildkite-agent restart\n"
+              ]
+            ]
+          }
+        }
+      }
+    }
+  },
+  "Outputs": {
+    "AutoScalingGroupAgent": {
+      "Value": {
+        "Ref": "AutoScalingGroupAgent"
+      }
+    }
+  }
+}
