@@ -41,6 +41,10 @@
       "Description": "S3 Bucket containing buildkite coffer files.",
       "Type": "String"
     },
+    "ArtifactsS3BucketName": {
+      "Description": "S3 Bucket containing artifacts produced by buildkite .",
+      "Type": "String"
+    },
     "ClusterSize": {
       "Default": "1",
       "MinValue": "1",
@@ -143,6 +147,28 @@
                           "arn:aws:s3:::",
                           {
                             "Ref": "CofferS3BucketName"
+                          },
+                          "/*"
+                        ]
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "s3:Get*",
+                    "s3:Put*",
+                    "s3:List*"
+                  ],
+                  "Resource": [
+                    {
+                      "Fn::Join": [
+                        "",
+                        [
+                          "arn:aws:s3:::",
+                          {
+                            "Ref": "ArtifactsS3BucketName"
                           },
                           "/*"
                         ]
@@ -266,7 +292,11 @@
                 {
                   "Ref": "AWS::Region"
                 },
-                " coffer --coffer-file buildkite.coffer download-sync --bucket=versent-buildkite-coffers\"\n",
+                "  coffer --coffer-file buildkite.coffer download-sync --bucket=",
+                {
+                  "Ref": "CofferS3BucketName"
+                },
+                "\"\n",
                 "service buildkite-agent restart\n"
               ]
             ]

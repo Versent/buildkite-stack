@@ -37,9 +37,11 @@ AWS_PROFILE=XX AWS_REGION=ap-southeast-2 coffer --coffer-file buildkite.coffer u
 ```
 AWS_DEFAULT_PROFILE=XX AWS_DEFAULT_REGION=ap-southeast-2 ./create-stack \
     Subnets="subnet-XX,subnet-XX" AMIID="ami-XX" CofferKeyARN="arn:aws:kms:ap-southeast-2:XXX:key/XXX" \
-    AgentToken="XXX" CofferS3BucketName="XX-buildkite-coffers" VpcId=vpc-XX
+    AgentToken="XXX" ArtifactsS3BucketName="XX-buildkite-artifacts" \
+    "CofferS3BucketName="XX-buildkite-coffers" VpcId=vpc-XX
 ```
 
 # todo
 
 * Add cloudwatch logs
+* Add [docker-gc](https://github.com/spotify/docker-gc)
