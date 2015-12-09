@@ -266,7 +266,9 @@
             {
               "Ref": "SpotPrice"
             },
-            {"Ref" : "AWS::NoValue"}
+            {
+              "Ref": "AWS::NoValue"
+            }
           ]
         },
         "SecurityGroups": [
@@ -286,8 +288,13 @@
                   "Ref": "AgentToken"
                 },
                 "/g\" /etc/buildkite-agent/buildkite-agent.cfg\n",
-                "echo meta-data=\"", {"Ref": "AgentMetaData"} ,"\" >> /etc/buildkite-agent/buildkite-agent.cfg\n",
+                "echo meta-data=\"",
+                {
+                  "Ref": "AgentMetaData"
+                },
+                "\" >> /etc/buildkite-agent/buildkite-agent.cfg\n",
                 "\n",
+                "echo meta-data-ec2-tags=true >> /etc/buildkite-agent/buildkite-agent.cfg\n",
                 "su - buildkite-agent -c \"AWS_REGION=",
                 {
                   "Ref": "AWS::Region"
