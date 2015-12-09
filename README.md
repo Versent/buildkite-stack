@@ -46,3 +46,11 @@ AWS_DEFAULT_PROFILE=XX AWS_DEFAULT_REGION=ap-southeast-2 ./create-stack \
 * Add cloudwatch logs
 * Run more than one agent
 * Add [docker-gc](https://github.com/spotify/docker-gc)
+
+# Sponsor
+
+This project was made possible by [Versent](http://www.versent.com.au).
+
+# License
+
+BSD
