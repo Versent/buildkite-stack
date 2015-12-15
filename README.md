@@ -7,8 +7,11 @@ It is comprised of:
 * [AWS Cloudformation](https://aws.amazon.com/cloudformation/)
 * [coffer](https://github.com/wolfeidau/coffer)
 * [buildkite agent](https://github.com/buildkite/agent)
+* [buildkite-packer](https://github.com/wolfeidau/buildkite-packer)
 
 # usage
+
+* Use buildkite-packer to build an AMI in your AWS account, once this is done use this in the cloudformation.
 
 * Create a KMS key in the region your using with the alias `coffer`.
 
@@ -40,12 +43,6 @@ AWS_DEFAULT_PROFILE=XX AWS_DEFAULT_REGION=ap-southeast-2 ./create-stack \
     AgentToken="XXX" ArtifactsS3BucketName="XX-buildkite-artifacts" \
     "CofferS3BucketName="XX-buildkite-coffers" VpcId=vpc-XX
 ```
-
-# todo
-
-* Add cloudwatch logs
-* Run more than one agent
-* Add [docker-gc](https://github.com/spotify/docker-gc)
 
 # Sponsor
 

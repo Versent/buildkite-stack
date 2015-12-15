@@ -7,9 +7,9 @@
       "Type": "AWS::EC2::VPC::Id"
     },
     "EC2KeyName": {
-      "Default": "buildkite",
       "Description": "Name of an existing EC2 KeyPair for SSH access",
-      "Type": "AWS::EC2::KeyPair::KeyName"
+      "Type": "AWS::EC2::KeyPair::KeyName",
+      "Default": "buildkite"
     },
     "InstanceType": {
       "Description": "EC2 instance type used for Agent servers",
@@ -17,12 +17,17 @@
       "Default": "t2.small"
     },
     "Subnets": {
-      "Description": "Subnet Id for Public Zone",
+      "Description": "The Ids of the Subnets into which instances will be deployed.",
       "Type": "List<AWS::EC2::Subnet::Id>"
     },
     "AMIID": {
       "Description": "Buildkite AMI to use.",
       "Type": "AWS::EC2::Image::Id"
+    },
+    "AssociatePublicIpAddress": {
+      "Description": "Associate a Public IpAddress with the agent instance.",
+      "Type": "String",
+      "Default": "true"
     },
     "CofferKeyARN": {
       "Description": "The ARN of the KMS key to use to decrypt secrets.",
@@ -42,7 +47,7 @@
       "Type": "String"
     },
     "ArtifactsS3BucketName": {
-      "Description": "S3 Bucket containing artifacts produced by buildkite .",
+      "Description": "S3 Bucket containing artifacts produced by buildkite.",
       "Type": "String"
     },
     "ClusterSize": {
@@ -247,7 +252,9 @@
     "LaunchConfigAgent": {
       "Type": "AWS::AutoScaling::LaunchConfiguration",
       "Properties": {
-        "AssociatePublicIpAddress": "true",
+        "AssociatePublicIpAddress": {
+          "Ref": "AssociatePublicIpAddress"
+        },
         "IamInstanceProfile": {
           "Ref": "InstanceProfileAgent"
         },
@@ -282,6 +289,25 @@
               "",
               [
                 "#!/bin/bash\n",
+                "\n",
+                "cat > /tmp/awslogs-buildkite.conf <<END_CW\n",
+                "[general]\n",
+                "state_file = /var/awslogs/state/agent-state\n",
+                "\n",
+                "[/var/log/secure]\n",
+                "file = /var/log/secure\n",
+                "log_group_name = buildkite_agent\n",
+                "log_stream_name = buildkite_agent_access_logs_{instance_id}\n",
+                "datetime_format = %b %d %H:%M:%S\n",
+                "END_CW\n",
+                "\n",
+                "wget https://s3.amazonaws.com/aws-cloudwatch/downloads/latest/awslogs-agent-setup.py\n",
+                "chmod +x ./awslogs-agent-setup.py\n",
+                "./awslogs-agent-setup.py -n -r ",
+                {
+                  "Ref": "AWS::Region"
+                },
+                " -c /tmp/awslogs-buildkite.conf \n",
                 "\n",
                 "sed -i \"s/xxx/",
                 {
