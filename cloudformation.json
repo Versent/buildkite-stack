@@ -141,6 +141,20 @@
                 {
                   "Effect": "Allow",
                   "Action": [
+                    "cloudwatch:PutMetricAlarm",
+                    "cloudwatch:PutMetricData",
+                    "logs:CreateLogGroup",
+                    "logs:CreateLogStream",
+                    "logs:PutLogEvents",
+                    "logs:DescribeLogStreams"
+                  ],
+                  "Resource": [
+                    "arn:aws:logs:*:*:*"
+                  ]
+                },
+                {
+                  "Effect": "Allow",
+                  "Action": [
                     "s3:Get*",
                     "s3:List*"
                   ],
