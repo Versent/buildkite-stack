@@ -52,7 +52,7 @@
     },
     "ClusterSize": {
       "Default": "1",
-      "MinValue": "1",
+      "MinValue": "0",
       "MaxValue": "2",
       "Description": "Number of buildkite hosts to spawn.",
       "Type": "Number"

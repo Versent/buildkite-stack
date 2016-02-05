@@ -38,10 +38,11 @@ AWS_PROFILE=XX AWS_REGION=ap-southeast-2 coffer --coffer-file buildkite.coffer u
 * Run the create stack passing in the required parameters.
 
 ```
-AWS_DEFAULT_PROFILE=XX AWS_DEFAULT_REGION=ap-southeast-2 ./create-stack \
+AWS_DEFAULT_PROFILE=XX AWS_DEFAULT_REGION=ap-southeast-2 ./create-stack.sh \
     Subnets="subnet-XX,subnet-XX" AMIID="ami-XX" CofferKeyARN="arn:aws:kms:ap-southeast-2:XXX:key/XXX" \
     AgentToken="XXX" ArtifactsS3BucketName="XX-buildkite-artifacts" \
-    "CofferS3BucketName="XX-buildkite-coffers" VpcId=vpc-XX
+    CofferS3BucketName="XX-buildkite-coffers" VpcId=vpc-XX AgentMetaData="gophers=true" \
+    EC2KeyName="XX-buildkite-agent"
 ```
 
 # Sponsor
